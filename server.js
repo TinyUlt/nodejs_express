@@ -36,7 +36,10 @@ app.post('/process_post', urlencodedParser, function (req, res) {
     console.log(response);
     res.end(JSON.stringify(response));
 })
+app.post('/d_*', urlencodedParser, function (req, res) {
 
+    find(req.params['0'], req, res );
+})
 const moment = require('moment');
 
 var MongoClient = require('mongodb').MongoClient;

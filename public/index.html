@@ -33,7 +33,7 @@
 
         let _get = `/d_${timeType}?startTime=${startTime}&endTime=${endTime}`;
         console.log(_get);
-        $.get(_get,function(cd,status){
+        $.post(_get,function(cd,status){
 
             let chartData =JSON.parse(cd) ;
 
