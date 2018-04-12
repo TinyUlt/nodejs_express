@@ -3,17 +3,177 @@
 <script type="text/javascript" src="js/loader.js"></script>
 <script  type="text/javascript" src="js/jquery.min.js"></script>
 
-<form action="http://127.0.0.1:8081/process_get" method="GET">
-    First Name: <input type="text" name="first_name">  <br>
+<!--<form action="http://127.0.0.1:8081/process_get" method="GET">-->
+    <!--First Name: <input type="text" name="first_name">  <br>-->
 
-    Last Name: <input type="text" name="last_name">
-    <input type="submit" value="Submit">
-</form>
-<form action="http://127.0.0.1:8081/process_post" method="POST">
-    First Name: <input type="text" name="first_name">  <br>
+    <!--Last Name: <input type="text" name="last_name">-->
+    <!--<input type="submit" value="Submit">-->
+<!--</form>-->
+<!--<form action="http://127.0.0.1:8081/process_post" method="POST">-->
+    <!--First Name: <input type="text" name="first_name">  <br>-->
 
-    Last Name: <input type="text" name="last_name">
-    <input type="submit" value="Submit">
-</form>
+    <!--Last Name: <input type="text" name="last_name">-->
+    <!--<input type="submit" value="Submit">-->
+
+<script type="text/javascript">
+
+    let timeType = "minute";
+    let updateTime = {};
+    updateTime["second"] = 10;
+    updateTime["halfMinute"] = 30;
+    updateTime["minute"] = 60;
+    updateTime["fiveMinute"] = 60 * 5;
+    updateTime["tenMinute"] = 60 * 10;
+    updateTime["halfHour"] = 60 * 30;
+    updateTime["hour"] = 60 * 60;
+
+    function update(){
+        let startTime =parseInt((new Date(document.getElementById("DateStart").value)).valueOf()) ;
+        let endTime = parseInt((new Date(document.getElementById("DateEnd").value)).valueOf());
+
+        let _get = `/d_${timeType}?startTime=${startTime}&endTime=${endTime}`;
+        console.log(_get);
+        $.get(_get,function(cd,status){
+
+            let chartData =JSON.parse(cd) ;
+
+            google.charts.load('current', {'packages':['line', 'corechart']});
+            google.charts.setOnLoadCallback(drawTopChart);
+            google.charts.setOnLoadCallback(drawMidChart);
+            google.charts.setOnLoadCallback(drawBotChart);
+
+            function drawTopChart(){
+                drawChart(["btc","btcamount"],[0,1],'chart_top',1000, 250);
+            }
+            function drawMidChart(){
+                drawChart(["btcmincount", "btcminamount","btcminvol"],[0,1,2],'chart_mid',1000, 250 );
+            }
+            function drawBotChart(){
+                drawChart(["usd","usdt","usdtbuy"],[0,1,1],'chart_bot',1000, 250 );
+            }
+            function drawChart(coinList,targetAxisIndex, elementId,chartWidth, chartHight) {
+
+                let chartDiv = document.getElementById(elementId);
+
+                let data = new google.visualization.DataTable();
+                data.addColumn('datetime', 'Time');
+
+                let temp = {};
+                for(let i = 0; i < coinList.length; i++){
+                    data.addColumn('number', coinList[i]);
+//                        temp[coinList[i]] = 0;
+//
+//                        for(let j = 0; j < chartData.length; j++){
+//
+//                            if(chartData[j][coinList[i]] !=null){
+//
+//                                temp[coinList[i]]=chartData[j][coinList[i]];
+//                                break;
+//                            }
+//                        }
+                }
+
+                let mydata=new Array();
+
+
+                for(let i = 0; i < chartData.length; i++){
+
+                    mydata[i] = new Array();
+
+                    mydata[i][0]= new Date(chartData[i]._id);
+
+                    for(let j = 0; j < coinList.length; j++){
+
+                        //如果存在 则赋值
+                        if(chartData[i][coinList[j]] !=null){
+
+                            mydata[i][j+1]=parseFloat(chartData[i][coinList[j]]) ;
+                            temp[coinList[j]] = mydata[i][j+1]
+                        }//如果temp之前有被赋值过
+                        else if(temp[coinList[j]] != null){
+
+                            mydata[i][j+1]=temp[coinList[j]];
+                        }//如果temp为null
+                        else{
+                            mydata[i][j+1] = null;
+                        }
+                    }
+                }
+
+                data.addRows(mydata);
+
+                let title = " ";
+                let series = {};
+                let vaxes = {};
+
+                for(let i = 0; i < coinList.length; i ++){
+                    title = title + " " + coinList[i];
+                    series[i] = {targetAxisIndex: targetAxisIndex[i]};
+                    vaxes[i] = {title: coinList[i]};
+                }
+
+                let classicOptions = {
+                    title: timeType + title,
+                    width: chartWidth,
+                    height: chartHight,
+                    series:series,
+                    vAxes: vaxes,
+                };
+
+                function drawClassicChart() {
+                    let classicChart = new google.visualization.LineChart(chartDiv);
+                    classicChart.draw(data, classicOptions);
+                }
+
+                drawClassicChart();
+
+            }
+//                setTimeout(update, 1000 * updateTime[timeType]);
+        });
+    }
+    function js_yyyy_mm_dd_hh_mm_ss (date) {
+        let now = date;
+        let year = "" + now.getFullYear();
+        let month = "" + (now.getMonth() + 1); if (month.length == 1) { month = "0" + month; }
+        let day = "" + now.getDate(); if (day.length == 1) { day = "0" + day; }
+        let hour = "" + now.getHours(); if (hour.length == 1) { hour = "0" + hour; }
+        let minute = "" + now.getMinutes(); if (minute.length == 1) { minute = "0" + minute; }
+        let second = "" + now.getSeconds(); if (second.length == 1) { second = "0" + second; }
+        return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second;
+    }
+    $(document).ready(function(){
+
+        let nowdate =new Date() ;
+        nextdate = new Date(nowdate.valueOf() + 1000*60*60*24) ;
+        document.getElementById("DateEnd").value = js_yyyy_mm_dd_hh_mm_ss(nextdate);
+        predate =new Date(nowdate.valueOf() - 1000*60*60*6) ;
+        document.getElementById("DateStart").value = js_yyyy_mm_dd_hh_mm_ss(predate);
+
+        document.getElementById('second').onclick = function () {timeType = "second"; update();};
+        document.getElementById('halfMinute').onclick = function () {timeType = "halfMinute"; update();};
+        document.getElementById('minute').onclick = function () {timeType = "minute"; update();};
+        document.getElementById('fiveMinute').onclick = function () {timeType = "fiveMinute"; update();};
+        document.getElementById('tenMinute').onclick = function () {timeType = "tenMinute"; update();};
+        document.getElementById('halfHour').onclick = function () {timeType = "halfHour"; update();};
+        document.getElementById('hour').onclick = function () {timeType = "hour"; update();};
+        update();
+    });
+
+</script>
+<!--</form>-->
+<input type="datetime-local" value="2018-04-24T13:59:59" id = "DateStart"/>
+<input type="datetime-local" value="2015-09-24T13:59:59" id = "DateEnd"/>
+
+<button id="second">second</button>
+<button id="halfMinute">halfMinute</button>
+<button id="minute">minute</button>
+<button id="fiveMinute">fiveMinute</button>
+<button id="tenMinute">tenMinute</button>
+<button id="halfHour">halfHour</button>
+<button id="hour">hour</button>
+
+<div id="chart_top" style="width: 1000px; height: 250px"></div>
+<div id="chart_mid" style="width: 1000px; height: 250px "></div>
+<div id="chart_bot" style="width: 1000px; height: 250px "></div>
 </body>
 </html>
