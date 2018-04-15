@@ -28,34 +28,56 @@
     updateTime["halfHour"] = 60 * 30;
     updateTime["hour"] = 60 * 60;
 
+
+
     function update(){
         let startTime =parseInt((new Date(document.getElementById("DateStart").value)).valueOf()) ;
         let endTime = parseInt((new Date(document.getElementById("DateEnd").value)).valueOf());
+        let btc_enable = document.getElementById("btc_checkbox").checked?1:0;
+        let btcamout_enable = document.getElementById("btcamout_checkbox").checked?1:0;
+        let usdt_enable = document.getElementById("usdt_checkbox").checked?1:0;
 
-        let _get = `/d_${timeType}?startTime=${startTime}&endTime=${endTime}`;
+        let charts=["chart_top","chart_mid","chart_bot"];
+        let chartIndex = 0;
+
+        for(let i = 0; i < charts.length; i++){
+            document.getElementById(charts[i]).hidden = true;
+        }
+
+        let _get = `/d_${timeType}?startTime=${startTime}&endTime=${endTime}&btc_enable=${btc_enable}&btcamout_enable=${btcamout_enable}&usdt_enable=${usdt_enable}`;
         console.log(_get);
         $.post(_get,function(cd,status){
 
             let chartData =JSON.parse(cd) ;
 
             google.charts.load('current', {'packages':['line', 'corechart']});
-            google.charts.setOnLoadCallback(drawTopChart);
-            google.charts.setOnLoadCallback(drawMidChart);
-            google.charts.setOnLoadCallback(drawBotChart);
+            if(btc_enable){
+                google.charts.setOnLoadCallback(drawTopChart);
+            }
+            if(btcamout_enable){
+                google.charts.setOnLoadCallback(drawMidChart);
+            }
+            if(usdt_enable){
+                google.charts.setOnLoadCallback(drawBotChart);
+            }
+
 
             function drawTopChart(){
-                drawChart(["btc","btcamount"],[0,1],'chart_top',1000, 250);
+                drawChart(["btc","btcamount"],[0,1],charts[chartIndex],1000, 250);
+                chartIndex++;
             }
             function drawMidChart(){
-                drawChart(["btcmincount", "btcminamount","btcminvol"],[0,1,2],'chart_mid',1000, 250 );
+                drawChart(["btcmincount", "btcminamount","btcminvol"],[0,1,2],charts[chartIndex],1000, 250 );
+                chartIndex++;
             }
             function drawBotChart(){
-                drawChart(["usd","usdt","usdtbuy"],[0,1,1],'chart_bot',1000, 250 );
+                drawChart(["usd","usdt","usdtbuy"],[0,1,1],charts[chartIndex],1000, 250 );
+                chartIndex++;
             }
             function drawChart(coinList,targetAxisIndex, elementId,chartWidth, chartHight) {
 
                 let chartDiv = document.getElementById(elementId);
-
+                chartDiv.hidden = false;
                 let data = new google.visualization.DataTable();
                 data.addColumn('datetime', 'Time');
 
@@ -147,6 +169,7 @@
         let nowdate =new Date() ;
         nextdate = new Date(nowdate.valueOf() + 1000*60*60*24) ;
         document.getElementById("DateEnd").value = js_yyyy_mm_dd_hh_mm_ss(nextdate);
+//        predate =new Date(1523497756956 - 10) ;
         predate =new Date(nowdate.valueOf() - 1000*60*60*6) ;
         document.getElementById("DateStart").value = js_yyyy_mm_dd_hh_mm_ss(predate);
 
@@ -157,6 +180,10 @@
         document.getElementById('tenMinute').onclick = function () {timeType = "tenMinute"; update();};
         document.getElementById('halfHour').onclick = function () {timeType = "halfHour"; update();};
         document.getElementById('hour').onclick = function () {timeType = "hour"; update();};
+
+        document.getElementById("btc_checkbox").checked = true;
+        document.getElementById("btcamout_checkbox").checked = false;
+        document.getElementById("usdt_checkbox").checked = true;
         update();
     });
 
@@ -172,6 +199,11 @@
 <button id="tenMinute">tenMinute</button>
 <button id="halfHour">halfHour</button>
 <button id="hour">hour</button>
+
+<input type="checkbox" id="btc_checkbox"  > btc</input>
+<input type="checkbox" id="btcamout_checkbox" > btcamout</input>
+<input type="checkbox" id="usdt_checkbox" > usdt</input>
+
 
 <div id="chart_top" style="width: 1000px; height: 250px"></div>
 <div id="chart_mid" style="width: 1000px; height: 250px "></div>

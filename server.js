@@ -71,7 +71,34 @@ function find(pathName, req, response){
     var query = {};
     let startTime =parseInt(req.query.startTime);
     let endTime =parseInt( req.query.endTime);
-    dbase.collection("g"). find({_id:{$gte:startTime,$lte:endTime}, [pathName]:1 }).project({_id:1, btc:1, usd:1, usdt:1,usdtbuy:1, btcminamount:1,btcminvol:1, btcmincount:1 }).sort({_id:1}).toArray(function(err, result) { // 返回集合中所有数据
+    let btc_enable = req.query.btc_enable;
+    let btcamout_enable = req.query.btcamout_enable;
+    let usdt_enable = req.query.usdt_enable;
+
+    console.log(btc_enable);
+    console.log(btcamout_enable);
+    console.log(usdt_enable);
+    let project = {};
+    project["_id"] = 1;
+    if(btc_enable == 1){
+        console.log("btc_enable");
+        project["btc"] = 1;
+    }
+    if(btcamout_enable == 1){
+        console.log("btcamout_enable");
+
+        project["btcminamount"] = 1;
+        project["btcminvol"] = 1;
+        project["btcmincount"] = 1;
+    }
+    if(usdt_enable == 1){
+        console.log("usdt_enable");
+
+        project["usd"] = 1;
+        project["usdt"] = 1;
+        project["usdtbuy"] = 1;
+    }
+    dbase.collection("g"). find({_id:{$gte:startTime,$lte:endTime}, [pathName]:1 }).project(project).sort({_id:1}).toArray(function(err, result) { // 返回集合中所有数据
         if (err) throw err;
 
         // response.writeHead(200, {"Content-Type": "text/plain"});
@@ -79,7 +106,7 @@ function find(pathName, req, response){
         response.end(JSON.stringify(result));
     });
 }
-var server = app.listen(80, function () {
+var server = app.listen(8081, function () {
 
     var host = server.address().address;
     var port = server.address().port;
