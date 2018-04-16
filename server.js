@@ -83,6 +83,7 @@ function find(pathName, req, response){
     if(btc_enable == 1){
         console.log("btc_enable");
         project["btc"] = 1;
+        project["aveUsdt"] = 1;
     }
     if(btcamout_enable == 1){
         console.log("btcamout_enable");
