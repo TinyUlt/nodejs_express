@@ -74,6 +74,8 @@ function find(pathName, req, response){
     let btc_enable = req.query.btc_enable;
     let btcamout_enable = req.query.btcamout_enable;
     let usdt_enable = req.query.usdt_enable;
+    let usdtdepth_enable = req.query.usdtdepth_enable;
+
 
     console.log(btc_enable);
     console.log(btcamout_enable);
@@ -83,7 +85,7 @@ function find(pathName, req, response){
     if(btc_enable == 1){
         console.log("btc_enable");
         project["btc"] = 1;
-        project["aveUsdt"] = 1;
+        // project["aveUsdt"] = 1;
     }
     if(btcamout_enable == 1){
         console.log("btcamout_enable");
@@ -99,6 +101,15 @@ function find(pathName, req, response){
         project["usdt"] = 1;
         project["usdtbuy"] = 1;
     }
+    if(usdtdepth_enable == 1){
+        console.log("usdt_depth");
+
+        project["asks"] = 1;
+
+        project["bids"] = 1;
+
+    }
+
     dbase.collection("g"). find({_id:{$gte:startTime,$lte:endTime}, [pathName]:1 }).project(project).sort({_id:1}).toArray(function(err, result) { // 返回集合中所有数据
         if (err) throw err;
 

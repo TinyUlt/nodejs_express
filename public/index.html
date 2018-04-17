@@ -36,15 +36,16 @@
         let btc_enable = document.getElementById("btc_checkbox").checked?1:0;
         let btcamout_enable = document.getElementById("btcamout_checkbox").checked?1:0;
         let usdt_enable = document.getElementById("usdt_checkbox").checked?1:0;
+        let usdtdepth_enable = document.getElementById("usdtdepth_checkbox").checked?1:0;
 
-        let charts=["chart_top","chart_mid","chart_bot"];
+        let charts=["chart_0","chart_1","chart_2","chart_3"];
         let chartIndex = 0;
 
         for(let i = 0; i < charts.length; i++){
             document.getElementById(charts[i]).hidden = true;
         }
 
-        let _get = `/d_${timeType}?startTime=${startTime}&endTime=${endTime}&btc_enable=${btc_enable}&btcamout_enable=${btcamout_enable}&usdt_enable=${usdt_enable}`;
+        let _get = `/d_${timeType}?startTime=${startTime}&endTime=${endTime}&btc_enable=${btc_enable}&btcamout_enable=${btcamout_enable}&usdt_enable=${usdt_enable}&usdtdepth_enable=${usdtdepth_enable}`;
         console.log(_get);
         $.post(_get,function(cd,status){
 
@@ -52,26 +53,32 @@
 
             google.charts.load('current', {'packages':['line', 'corechart']});
             if(btc_enable){
-                google.charts.setOnLoadCallback(drawTopChart);
+                google.charts.setOnLoadCallback(drawbtcChart);
             }
             if(btcamout_enable){
-                google.charts.setOnLoadCallback(drawMidChart);
+                google.charts.setOnLoadCallback(drawamountChart);
             }
             if(usdt_enable){
-                google.charts.setOnLoadCallback(drawBotChart);
+                google.charts.setOnLoadCallback(drawusdChart);
+            }
+            if(usdtdepth_enable){
+                google.charts.setOnLoadCallback(drawdepthChart);
             }
 
-
-            function drawTopChart(){
-                drawChart(["btc","aveUsdt"],[0,1],charts[chartIndex],1000, 250);
+            function drawbtcChart(){
+                drawChart(["btc"],[0],charts[chartIndex],1000, 250);
                 chartIndex++;
             }
-            function drawMidChart(){
+            function drawamountChart(){
                 drawChart(["btcmincount", "btcminamount","btcminvol"],[0,1,2],charts[chartIndex],1000, 250 );
                 chartIndex++;
             }
-            function drawBotChart(){
+            function drawusdChart(){
                 drawChart(["usd","usdt","usdtbuy"],[0,1,1],charts[chartIndex],1000, 250 );
+                chartIndex++;
+            }
+            function drawdepthChart(){
+                drawChart(["bids","asks"],[0],charts[chartIndex],1000, 250 );
                 chartIndex++;
             }
             function drawChart(coinList,targetAxisIndex, elementId,chartWidth, chartHight) {
@@ -184,6 +191,7 @@
         document.getElementById("btc_checkbox").checked = true;
         document.getElementById("btcamout_checkbox").checked = false;
         document.getElementById("usdt_checkbox").checked = true;
+        document.getElementById("usdtdepth_checkbox").checked = true;
         update();
     });
 
@@ -203,10 +211,12 @@
 <input type="checkbox" id="btc_checkbox"  > btc</input>
 <input type="checkbox" id="btcamout_checkbox" > btcamout</input>
 <input type="checkbox" id="usdt_checkbox" > usdt</input>
+<input type="checkbox" id="usdtdepth_checkbox" > usdtdepth</input>
 
 
-<div id="chart_top" style="width: 1000px; height: 250px"></div>
-<div id="chart_mid" style="width: 1000px; height: 250px "></div>
-<div id="chart_bot" style="width: 1000px; height: 250px "></div>
+<div id="chart_0" style="width: 1000px; height: 250px"></div>
+<div id="chart_1" style="width: 1000px; height: 250px "></div>
+<div id="chart_2" style="width: 1000px; height: 250px "></div>
+<div id="chart_3" style="width: 1000px; height: 250px "></div>
 </body>
 </html>
