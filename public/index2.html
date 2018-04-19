@@ -18,7 +18,6 @@
 
 <script type="text/javascript">
 
-    let timeType = "minute";
     let updateTime = {};
     updateTime["second"] = 10;
     updateTime["halfMinute"] = 30;
@@ -28,15 +27,38 @@
     updateTime["halfHour"] = 60 * 30;
     updateTime["hour"] = 60 * 60;
 
+    let oldEndTime=0;
+    let chartsDataList={};
+    let classicChartList={};
+    let startTime=0;
+    function getChartDataName(coinList){
+        let dataName = "";
+        for(let i = 0; i < coinList.length; i++){
+            dataName += coinList[i];
+        }
+        return dataName
+    }
+    function update() {
+        if(oldEndTime != 0){
 
+            startTime = oldEndTime;
 
-    function update(){
-        let startTime =parseInt((new Date(document.getElementById("DateStart").value)).valueOf()) ;
+        }else{
+            startTime =parseInt((new Date(document.getElementById("DateStart").value)).valueOf()) ;
+        }
+
+        createCharts();
+    }
+    function createCharts(){
+
+        //获取设置控件
+//        let startTime =parseInt((new Date(document.getElementById("DateStart").value)).valueOf()) ;
         let endTime = parseInt((new Date(document.getElementById("DateEnd").value)).valueOf());
         let btc_enable = document.getElementById("btc_checkbox").checked?1:0;
         let btcamout_enable = document.getElementById("btcamout_checkbox").checked?1:0;
         let usdt_enable = document.getElementById("usdt_checkbox").checked?1:0;
         let usdtdepth_enable = document.getElementById("usdtdepth_checkbox").checked?1:0;
+        let timeType = $('input:radio:checked').val();
 
         let charts=["chart_0","chart_1","chart_2","chart_3"];
         let chartIndex = 0;
@@ -48,24 +70,46 @@
         let _get = `/d_a?timeType=${timeType}&startTime=${startTime}&endTime=${endTime}&btc_enable=${btc_enable}&btcamout_enable=${btcamout_enable}&usdt_enable=${usdt_enable}&usdtdepth_enable=${usdtdepth_enable}`;
         console.log(_get);
         $.post(_get,function(cd,status){
-            console.log(cd);
 
-            let json =JSON.parse(cd)
-            let chartData = json.data;
+            let json = JSON.parse(cd)
 
-            google.charts.load('current', {'packages':['line', 'corechart']});
-            if(btc_enable){
-                google.charts.setOnLoadCallback(drawbtcChart);
+            let chartData =json.data ;
+            console.log(chartData);
+
+            if(oldEndTime==0){
+                google.charts.load('current', {'packages':['line', 'corechart']});
+                if(btc_enable){
+                    google.charts.setOnLoadCallback(drawbtcChart);
+                }
+                if(btcamout_enable){
+                    google.charts.setOnLoadCallback(drawamountChart);
+                }
+                if(usdt_enable){
+                    google.charts.setOnLoadCallback(drawusdChart);
+                }
+                if(usdtdepth_enable){
+                    google.charts.setOnLoadCallback(drawdepthChart);
+                }
+            }else{
+                if(btc_enable){
+                    (drawbtcChart());
+                }
+                if(btcamout_enable){
+                    (drawamountChart());
+                }
+                if(usdt_enable){
+                    (drawusdChart());
+                }
+                if(usdtdepth_enable){
+                    (drawdepthChart());
+                }
             }
-            if(btcamout_enable){
-                google.charts.setOnLoadCallback(drawamountChart);
-            }
-            if(usdt_enable){
-                google.charts.setOnLoadCallback(drawusdChart);
-            }
-            if(usdtdepth_enable){
-                google.charts.setOnLoadCallback(drawdepthChart);
-            }
+
+
+
+            oldEndTime = json.endTime;
+
+
 
             function drawbtcChart(){
                 drawChart(["btc"],[0],charts[chartIndex],1000, 250);
@@ -84,29 +128,12 @@
                 chartIndex++;
             }
             function drawChart(coinList,targetAxisIndex, elementId,chartWidth, chartHight) {
-
                 let chartDiv = document.getElementById(elementId);
                 chartDiv.hidden = false;
-                let data = new google.visualization.DataTable();
-                data.addColumn('datetime', 'Time');
 
                 let temp = {};
-                for(let i = 0; i < coinList.length; i++){
-                    data.addColumn('number', coinList[i]);
-//                        temp[coinList[i]] = 0;
-//
-//                        for(let j = 0; j < chartData.length; j++){
-//
-//                            if(chartData[j][coinList[i]] !=null){
-//
-//                                temp[coinList[i]]=chartData[j][coinList[i]];
-//                                break;
-//                            }
-//                        }
-                }
 
                 let mydata=new Array();
-
 
                 for(let i = 0; i < chartData.length; i++){
 
@@ -131,9 +158,6 @@
                         }
                     }
                 }
-
-                data.addRows(mydata);
-
                 let title = " ";
                 let series = {};
                 let vaxes = {};
@@ -152,15 +176,32 @@
                     vAxes: vaxes,
                 };
 
-                function drawClassicChart() {
-                    let classicChart = new google.visualization.LineChart(chartDiv);
-                    classicChart.draw(data, classicOptions);
-                }
+                let name = getChartDataName(coinList);
+                if(chartsDataList[name]==null){
+                    chartsDataList[name] = new google.visualization.DataTable();
+                    chartsDataList[name].addColumn('datetime', 'Time');
+                    for(let i = 0; i < coinList.length; i++){
+                        chartsDataList[name].addColumn('number', coinList[i]);
 
-                drawClassicChart();
+                    }
+                }
+                let data = chartsDataList[name]
+
+                data.addRows(mydata);
+
+
+                if(classicChartList[name]==null){
+                    classicChartList[name] = new google.visualization.LineChart(chartDiv);
+                }
+                let classicChart = classicChartList[name];
+                classicChart.draw(data, classicOptions);
+
+//                drawClassicChart();
 
             }
-//                setTimeout(update, 1000 * updateTime[timeType]);
+
+
+                setTimeout(update, 1000 );
         });
     }
     function js_yyyy_mm_dd_hh_mm_ss (date) {
@@ -175,45 +216,58 @@
     }
     $(document).ready(function(){
 
+        //初始化控件
         let nowdate =new Date() ;
         nextdate = new Date(nowdate.valueOf() + 1000*60*60*24) ;
         document.getElementById("DateEnd").value = js_yyyy_mm_dd_hh_mm_ss(nextdate);
 //        predate =new Date(1523497756956 - 10) ;
-        predate =new Date(nowdate.valueOf() - 1000*60*60*6) ;
+        predate =new Date(nowdate.valueOf() - 1000*60) ;
         document.getElementById("DateStart").value = js_yyyy_mm_dd_hh_mm_ss(predate);
 
-        document.getElementById('second').onclick = function () {timeType = "second"; update();};
-        document.getElementById('halfMinute').onclick = function () {timeType = "halfMinute"; update();};
-        document.getElementById('minute').onclick = function () {timeType = "minute"; update();};
-        document.getElementById('fiveMinute').onclick = function () {timeType = "fiveMinute"; update();};
-        document.getElementById('tenMinute').onclick = function () {timeType = "tenMinute"; update();};
-        document.getElementById('halfHour').onclick = function () {timeType = "halfHour"; update();};
-        document.getElementById('hour').onclick = function () {timeType = "hour"; update();};
+        document.getElementById('update').onclick = function () {update();};
+//        document.getElementById('second').onclick = function () {timeType = "second"; update();};
+//        document.getElementById('halfMinute').onclick = function () {timeType = "halfMinute"; update();};
+//        document.getElementById('minute').onclick = function () {timeType = "minute"; update();};
+//        document.getElementById('fiveMinute').onclick = function () {timeType = "fiveMinute"; update();};
+//        document.getElementById('tenMinute').onclick = function () {timeType = "tenMinute"; update();};
+//        document.getElementById('halfHour').onclick = function () {timeType = "halfHour"; update();};
+//        document.getElementById('hour').onclick = function () {timeType = "hour"; update();};
+
 
         document.getElementById("btc_checkbox").checked = true;
         document.getElementById("btcamout_checkbox").checked = false;
-        document.getElementById("usdt_checkbox").checked = true;
-        document.getElementById("usdtdepth_checkbox").checked = true;
+        document.getElementById("usdt_checkbox").checked = false;
+        document.getElementById("usdtdepth_checkbox").checked = false;
         update();
     });
 
 </script>
 <!--</form>-->
-<input type="datetime-local" value="2018-04-24T13:59:59" id = "DateStart"/>
-<input type="datetime-local" value="2015-09-24T13:59:59" id = "DateEnd"/>
+<div>
+    <input type="datetime-local" value="2018-04-24T13:59:59" id = "DateStart"/>
+    <input type="datetime-local" value="2015-09-24T13:59:59" id = "DateEnd"/>
+    <button id="update">update</button>
+</div>
 
-<button id="second">second</button>
-<button id="halfMinute">halfMinute</button>
-<button id="minute">minute</button>
-<button id="fiveMinute">fiveMinute</button>
-<button id="tenMinute">tenMinute</button>
-<button id="halfHour">halfHour</button>
-<button id="hour">hour</button>
+<div>
+    <input type="radio" id="second" checked="checked" name="timeType" value="second" > second</input>
+    <input type="radio" id="halfMinute" name="timeType" value="halfMinute"> halfMinute</input>
+    <input type="radio"  id="minute" name="timeType" value="minute"> minute</input>
+    <input type="radio" id="fiveMinute" name="timeType" value="fiveMinute" > fiveMinute</input>
+    <input type="radio" id="tenMinute" name="timeType" value="tenMinute"  > tenMinute</input>
+    <input type="radio" id="halfHour" name="timeType" value="halfHour" > halfHour</input>
+    <input type="radio" id="hour" name="timeType" value="hour" > hour</input>
+</div>
+<div>
+    <input type="checkbox" id="btc_checkbox"  > btc</input>
+    <input type="checkbox" id="btcamout_checkbox" > btcamout</input>
+    <input type="checkbox" id="usdt_checkbox" > usdt</input>
+    <input type="checkbox" id="usdtdepth_checkbox" > usdtdepth</input>
+</div>
 
-<input type="checkbox" id="btc_checkbox"  > btc</input>
-<input type="checkbox" id="btcamout_checkbox" > btcamout</input>
-<input type="checkbox" id="usdt_checkbox" > usdt</input>
-<input type="checkbox" id="usdtdepth_checkbox" > usdtdepth</input>
+
+
+
 
 
 <div id="chart_0" style="width: 1000px; height: 250px"></div>

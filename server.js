@@ -58,17 +58,36 @@ MongoClient.connect(url, function(err, db) {
     // });
 });
 function getDateString(){
-    var today=new Date();
+    let today=new Date();
     return today.getFullYear()+"_" + (today.getMonth() + 1) + "_" + today.getDate();
 }
 function getDataValue(){
-    var today=new Date();
+    let today=new Date();
     return today.valueOf();
 }
+function JSONLength(obj) {
+    let size = 0, key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) size++;
+    }
+    return size;
+};
+function DeleteId(arr) {
+    for(var i=0,flag=true,len=arr.length;i<len;flag ? i++ : i){
 
+        if( arr[i]&&JSONLength(arr[i])==1 ){
+            arr.splice(i,1);
+            flag = false;
+        } else {
+            flag = true;
+        }
+
+    }
+}
 function find(pathName, req, response){
 
     var query = {};
+    let timeType = req.query.timeType;
     let startTime =parseInt(req.query.startTime);
     let endTime =parseInt( req.query.endTime);
     let btc_enable = req.query.btc_enable;
@@ -110,12 +129,31 @@ function find(pathName, req, response){
 
     }
 
-    dbase.collection("g"). find({_id:{$gte:startTime,$lte:endTime}, [pathName]:1 }).project(project).sort({_id:1}).toArray(function(err, result) { // 返回集合中所有数据
+    dbase.collection("g"). find({_id:{$gt:startTime,$lt:endTime}, [timeType]:1 }).project(project).sort({_id:1}).toArray(function(err, result) { // 返回集合中所有数据
         if (err) throw err;
 
-        // response.writeHead(200, {"Content-Type": "text/plain"});
-        // response.write(JSON.stringify(result));
-        response.end(JSON.stringify(result));
+        DeleteId(result);
+
+        // console.log(result);
+        let json = {};
+        json.timeType = timeType;
+        if(result.length==0){
+            json.startTime = startTime;
+            json.endTime = startTime;
+            json.data = result;
+        }else{
+
+            json.startTime = result[0]._id;
+            json.endTime = result[result.length-1]._id;
+            // response.writeHead(200, {"Content-Type": "text/plain"});
+
+            json.data = result;
+
+        }
+
+        // response.write("aaa");
+
+         response.end(JSON.stringify(json));
     });
 }
 var server = app.listen(80, function () {
