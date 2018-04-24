@@ -38,19 +38,20 @@ app.post('/process_post', urlencodedParser, function (req, res) {
 })
 app.post('/d_*', urlencodedParser, function (req, res) {
 
-    find(req.params['0'], req, res );
+    handle(req.params['0'], req, res );
 })
 const moment = require('moment');
 
 var MongoClient = require('mongodb').MongoClient;
 var assert = require('assert');
 
-var url = 'mongodb://root:TinyUlt920805@47.52.225.13:27017/huobi?authSource=admin';
+let MONGODB = process.env.MONGODB;
+let dbName = "br112";
 var dbase;
-MongoClient.connect(url, function(err, db) {
+MongoClient.connect(MONGODB, function(err, db) {
     assert.equal(null, err);
     console.log('Connected correctly to server.');
-    dbase = db.db("huobi");
+    dbase = db.db(dbName);
     // dbase.createCollection('site', function (err, res) {
     //     assert.equal(null, err);
     //     console.log("创建集合!");
@@ -84,79 +85,48 @@ function DeleteId(arr) {
 
     }
 }
-function find(pathName, req, response){
+function handle(pathName, req, response) {
 
-    var query = {};
-    let timeType = req.query.timeType;
-    let startTime =parseInt(req.query.startTime);
-    let endTime =parseInt( req.query.endTime);
-    let btc_enable = req.query.btc_enable;
-    let btcamout_enable = req.query.btcamout_enable;
-    let usdt_enable = req.query.usdt_enable;
-    let usdtdepth_enable = req.query.usdtdepth_enable;
+    console.log(pathName);
 
+    if(pathName == "a"){
+        var query = {};
+        let timeType = req.query.timeType;
+        let startTime =parseInt(req.query.startTime);
+        let endTime =parseInt( req.query.endTime);
+        let symbol = req.query.symbol;
+        find(symbol, startTime, endTime, response);
+    }else if(pathName == "b"){
 
-    console.log(btc_enable);
-    console.log(btcamout_enable);
-    console.log(usdt_enable);
-    let project = {};
-    project["_id"] = 1;
-    if(btc_enable == 1){
-        console.log("btc_enable");
-        project["btc"] = 1;
-        // project["aveUsdt"] = 1;
-    }
-    if(btcamout_enable == 1){
-        console.log("btcamout_enable");
-
-        project["btcminamount"] = 1;
-        project["btcminvol"] = 1;
-        project["btcmincount"] = 1;
-    }
-    if(usdt_enable == 1){
-        console.log("usdt_enable");
-
-        project["usd"] = 1;
-        project["usdt"] = 1;
-        project["usdtbuy"] = 1;
-    }
-    if(usdtdepth_enable == 1){
-        console.log("usdt_depth");
-
-        project["asks"] = 1;
-
-        project["bids"] = 1;
-
+        getRobotInfo(response);
     }
 
-    dbase.collection("g"). find({_id:{$gt:startTime,$lt:endTime}, [timeType]:1 }).project(project).sort({_id:1}).toArray(function(err, result) { // 返回集合中所有数据
+
+
+}
+function getRobotInfo(response){
+    dbase.collection("info"). find({_id:0}).toArray(function(err, result) { // 返回集合中所有数据
         if (err) throw err;
 
-        DeleteId(result);
-
-        // console.log(result);
-        let json = {};
-        json.timeType = timeType;
-        if(result.length==0){
-            json.startTime = startTime;
-            json.endTime = startTime;
-            json.data = result;
-        }else{
-
-            json.startTime = result[0]._id;
-            json.endTime = result[result.length-1]._id;
-            // response.writeHead(200, {"Content-Type": "text/plain"});
-
-            json.data = result;
-
-        }
-
-        // response.write("aaa");
-
-         response.end(JSON.stringify(json));
+        response.end(JSON.stringify(result[0]));
     });
 }
-var server = app.listen(80, function () {
+function find(collectionName, startTime,endTime,  response){
+    let project = {};
+    project["_id"] = 1;
+    project["ask"] = 1;
+    project["bid"] = 1;
+    project["usdtBtcPrice"] = 1;
+    project["sellDonePrice"] = 1;
+
+
+    dbase.collection(collectionName). find({_id:{$gt:startTime,$lt:endTime}}).project(project).sort({_id:1}).toArray(function(err, result) { // 返回集合中所有数据
+        if (err) throw err;
+
+         response.end(JSON.stringify(result));
+    });
+}
+var server = app.listen(8081, function () {
 
     var host = server.address().address;
     var port = server.address().port;

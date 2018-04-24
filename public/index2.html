@@ -1,278 +1,110 @@
-<!DOCTYPE html>
 <html>
-<body>
-<script type="text/javascript" src="js/loader.js"></script>
-<script  type="text/javascript" src="js/jquery.min.js"></script>
+<head>
+    <script type="text/javascript" src="js/loader.js"></script>
+    <script  type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript">
 
-<!--<form action="http://127.0.0.1:8081/process_get" method="GET">-->
-    <!--First Name: <input type="text" name="first_name">  <br>-->
+        $(document).ready(function(){
 
-    <!--Last Name: <input type="text" name="last_name">-->
-    <!--<input type="submit" value="Submit">-->
-<!--</form>-->
-<!--<form action="http://127.0.0.1:8081/process_post" method="POST">-->
-    <!--First Name: <input type="text" name="first_name">  <br>-->
-
-    <!--Last Name: <input type="text" name="last_name">-->
-    <!--<input type="submit" value="Submit">-->
-
-<script type="text/javascript">
-
-    let updateTime = {};
-    updateTime["second"] = 10;
-    updateTime["halfMinute"] = 30;
-    updateTime["minute"] = 60;
-    updateTime["fiveMinute"] = 60 * 5;
-    updateTime["tenMinute"] = 60 * 10;
-    updateTime["halfHour"] = 60 * 30;
-    updateTime["hour"] = 60 * 60;
-
-    let oldEndTime=0;
-    let chartsDataList={};
-    let classicChartList={};
-    let startTime=0;
-    function getChartDataName(coinList){
-        let dataName = "";
-        for(let i = 0; i < coinList.length; i++){
-            dataName += coinList[i];
-        }
-        return dataName
-    }
-    function update() {
-        if(oldEndTime != 0){
-
-            startTime = oldEndTime;
-
-        }else{
-            startTime =parseInt((new Date(document.getElementById("DateStart").value)).valueOf()) ;
-        }
-
-        createCharts();
-    }
-    function createCharts(){
-
-        //获取设置控件
-//        let startTime =parseInt((new Date(document.getElementById("DateStart").value)).valueOf()) ;
-        let endTime = parseInt((new Date(document.getElementById("DateEnd").value)).valueOf());
-        let btc_enable = document.getElementById("btc_checkbox").checked?1:0;
-        let btcamout_enable = document.getElementById("btcamout_checkbox").checked?1:0;
-        let usdt_enable = document.getElementById("usdt_checkbox").checked?1:0;
-        let usdtdepth_enable = document.getElementById("usdtdepth_checkbox").checked?1:0;
-        let timeType = $('input:radio:checked').val();
-
-        let charts=["chart_0","chart_1","chart_2","chart_3"];
-        let chartIndex = 0;
-
-        for(let i = 0; i < charts.length; i++){
-            document.getElementById(charts[i]).hidden = true;
-        }
-
-        let _get = `/d_a?timeType=${timeType}&startTime=${startTime}&endTime=${endTime}&btc_enable=${btc_enable}&btcamout_enable=${btcamout_enable}&usdt_enable=${usdt_enable}&usdtdepth_enable=${usdtdepth_enable}`;
-        console.log(_get);
-        $.post(_get,function(cd,status){
-
-            let json = JSON.parse(cd)
-
-            let chartData =json.data ;
-            console.log(chartData);
-
-            if(oldEndTime==0){
-                google.charts.load('current', {'packages':['line', 'corechart']});
-                if(btc_enable){
-                    google.charts.setOnLoadCallback(drawbtcChart);
-                }
-                if(btcamout_enable){
-                    google.charts.setOnLoadCallback(drawamountChart);
-                }
-                if(usdt_enable){
-                    google.charts.setOnLoadCallback(drawusdChart);
-                }
-                if(usdtdepth_enable){
-                    google.charts.setOnLoadCallback(drawdepthChart);
-                }
-            }else{
-                if(btc_enable){
-                    (drawbtcChart());
-                }
-                if(btcamout_enable){
-                    (drawamountChart());
-                }
-                if(usdt_enable){
-                    (drawusdChart());
-                }
-                if(usdtdepth_enable){
-                    (drawdepthChart());
-                }
-            }
-
-
-
-            oldEndTime = json.endTime;
-
-
-
-            function drawbtcChart(){
-                drawChart(["btc"],[0],charts[chartIndex],1000, 250);
-                chartIndex++;
-            }
-            function drawamountChart(){
-                drawChart(["btcmincount", "btcminamount","btcminvol"],[0,1,2],charts[chartIndex],1000, 250 );
-                chartIndex++;
-            }
-            function drawusdChart(){
-                drawChart(["usd","usdt","usdtbuy"],[0,1,1],charts[chartIndex],1000, 250 );
-                chartIndex++;
-            }
-            function drawdepthChart(){
-                drawChart(["bids","asks"],[0],charts[chartIndex],1000, 250 );
-                chartIndex++;
-            }
-            function drawChart(coinList,targetAxisIndex, elementId,chartWidth, chartHight) {
-                let chartDiv = document.getElementById(elementId);
-                chartDiv.hidden = false;
-
-                let temp = {};
-
-                let mydata=new Array();
-
-                for(let i = 0; i < chartData.length; i++){
-
-                    mydata[i] = new Array();
-
-                    mydata[i][0]= new Date(chartData[i]._id);
-
-                    for(let j = 0; j < coinList.length; j++){
-
-                        //如果存在 则赋值
-                        if(chartData[i][coinList[j]] !=null){
-
-                            mydata[i][j+1]=parseFloat(chartData[i][coinList[j]]) ;
-                            temp[coinList[j]] = mydata[i][j+1]
-                        }//如果temp之前有被赋值过
-                        else if(temp[coinList[j]] != null){
-
-                            mydata[i][j+1]=temp[coinList[j]];
-                        }//如果temp为null
-                        else{
-                            mydata[i][j+1] = null;
-                        }
-                    }
-                }
-                let title = " ";
-                let series = {};
-                let vaxes = {};
-
-                for(let i = 0; i < coinList.length; i ++){
-                    title = title + " " + coinList[i];
-                    series[i] = {targetAxisIndex: targetAxisIndex[i]};
-                    vaxes[i] = {title: coinList[i]};
-                }
-
-                let classicOptions = {
-                    title: timeType + title,
-                    width: chartWidth,
-                    height: chartHight,
-                    series:series,
-                    vAxes: vaxes,
-                };
-
-                let name = getChartDataName(coinList);
-                if(chartsDataList[name]==null){
-                    chartsDataList[name] = new google.visualization.DataTable();
-                    chartsDataList[name].addColumn('datetime', 'Time');
-                    for(let i = 0; i < coinList.length; i++){
-                        chartsDataList[name].addColumn('number', coinList[i]);
-
-                    }
-                }
-                let data = chartsDataList[name]
-
-                data.addRows(mydata);
-
-
-                if(classicChartList[name]==null){
-                    classicChartList[name] = new google.visualization.LineChart(chartDiv);
-                }
-                let classicChart = classicChartList[name];
-                classicChart.draw(data, classicOptions);
-
-//                drawClassicChart();
-
-            }
-
-
-                setTimeout(update, 1000 );
+//            drawChart();
+            getData();
         });
-    }
-    function js_yyyy_mm_dd_hh_mm_ss (date) {
-        let now = date;
-        let year = "" + now.getFullYear();
-        let month = "" + (now.getMonth() + 1); if (month.length == 1) { month = "0" + month; }
-        let day = "" + now.getDate(); if (day.length == 1) { day = "0" + day; }
-        let hour = "" + now.getHours(); if (hour.length == 1) { hour = "0" + hour; }
-        let minute = "" + now.getMinutes(); if (minute.length == 1) { minute = "0" + minute; }
-        let second = "" + now.getSeconds(); if (second.length == 1) { second = "0" + second; }
-        return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second;
-    }
-    $(document).ready(function(){
 
-        //初始化控件
-        let nowdate =new Date() ;
-        nextdate = new Date(nowdate.valueOf() + 1000*60*60*24) ;
-        document.getElementById("DateEnd").value = js_yyyy_mm_dd_hh_mm_ss(nextdate);
-//        predate =new Date(1523497756956 - 10) ;
-        predate =new Date(nowdate.valueOf() - 1000*60) ;
-        document.getElementById("DateStart").value = js_yyyy_mm_dd_hh_mm_ss(predate);
+        function getData(){
+            $.post(_get,function(cd,status){
 
-        document.getElementById('update').onclick = function () {update();};
-//        document.getElementById('second').onclick = function () {timeType = "second"; update();};
-//        document.getElementById('halfMinute').onclick = function () {timeType = "halfMinute"; update();};
-//        document.getElementById('minute').onclick = function () {timeType = "minute"; update();};
-//        document.getElementById('fiveMinute').onclick = function () {timeType = "fiveMinute"; update();};
-//        document.getElementById('tenMinute').onclick = function () {timeType = "tenMinute"; update();};
-//        document.getElementById('halfHour').onclick = function () {timeType = "halfHour"; update();};
-//        document.getElementById('hour').onclick = function () {timeType = "hour"; update();};
+                let json =JSON.parse(cd)
+                drawChart(json);
+            });
+        }
+        function drawChart(data){
+            google.charts.load('current', {'packages':['corechart']});
+            google.charts.setOnLoadCallback(drawChart);
+
+            function drawChart() {
+                google.charts.load('current', {'packages':['corechart', 'scatter']});
+                google.charts.setOnLoadCallback(drawStuff);
+
+                function drawStuff() {
+
+                    var button = document.getElementById('change-chart');
+                    var chartDiv = document.getElementById('chart_div');
+
+                    var data = new google.visualization.DataTable();
+                    data.addColumn('number', 'Student ID');
+                    data.addColumn('number', 'Hours Studied');
+                    data.addColumn('number', 'Final');
+
+                    data.addRows([
+                        [0, 0, 67],  [1, 1, 88],   [2, 2, 77],
+                        [3, 3, 93],  [4, 4, 85],   [5, 5, 91],
+                        [6, 6, 71],  [7, 7, 78],   [8, 8, 93],
+                        [9, 9, 80],  [10, 10, 82], [11, 0, 75],
+                        [12, 5, 80], [13, 3, 90],  [14, 1, 72],
+                        [15, 5, 75], [16, 6, 68],  [17, 7, 98],
+                        [18, 3, 82], [19, 9, 94],  [20, 2, 79],
+                        [21, 2, 95], [22, 2, 86],  [23, 3, 67],
+                        [24, 4, 60], [25, 2, 80],  [26, 6, 92],
+                        [27, 2, 81], [28, 8, 79],  [29, 9, 83]
+                    ]);
+
+                    var materialOptions = {
+                        chart: {
+                            title: 'Students\' Final Grades',
+                            subtitle: 'based on hours studied'
+                        },
+                        width: 800,
+                        height: 500,
+                        series: {
+                            0: {axis: 'hours studied'},
+                            1: {axis: 'final grade'}
+                        },
+                        axes: {
+                            y: {
+                                'hours studied': {label: 'Hours Studied'},
+                                'final grade': {label: 'Final Exam Grade'}
+                            }
+                        }
+                    };
+
+                    var classicOptions = {
+                        width: 800,
+                        series: {
+                            0: {targetAxisIndex: 0},
+                            1: {targetAxisIndex: 1}
+                        },
+                        title: 'Students\' Final Grades - based on hours studied',
+
+                        vAxes: {
+                            // Adds titles to each axis.
+                            0: {title: 'Hours Studied'},
+                            1: {title: 'Final Exam Grade'}
+                        }
+                    };
+
+                    function drawMaterialChart() {
+                        var materialChart = new google.charts.Scatter(chartDiv);
+                        materialChart.draw(data, google.charts.Scatter.convertOptions(materialOptions));
+                        button.innerText = 'Change to Classic';
+                        button.onclick = drawClassicChart;
+                    }
+
+                    function drawClassicChart() {
+                        var classicChart = new google.visualization.ScatterChart(chartDiv);
+                        classicChart.draw(data, classicOptions);
+                        button.innerText = 'Change to Material';
+                        button.onclick = drawMaterialChart;
+                    }
+
+                    drawMaterialChart();
+                };
+        }
 
 
-        document.getElementById("btc_checkbox").checked = true;
-        document.getElementById("btcamout_checkbox").checked = false;
-        document.getElementById("usdt_checkbox").checked = false;
-        document.getElementById("usdtdepth_checkbox").checked = false;
-        update();
-    });
-
-</script>
-<!--</form>-->
-<div>
-    <input type="datetime-local" value="2018-04-24T13:59:59" id = "DateStart"/>
-    <input type="datetime-local" value="2015-09-24T13:59:59" id = "DateEnd"/>
-    <button id="update">update</button>
-</div>
-
-<div>
-    <input type="radio" id="second" checked="checked" name="timeType" value="second" > second</input>
-    <input type="radio" id="halfMinute" name="timeType" value="halfMinute"> halfMinute</input>
-    <input type="radio"  id="minute" name="timeType" value="minute"> minute</input>
-    <input type="radio" id="fiveMinute" name="timeType" value="fiveMinute" > fiveMinute</input>
-    <input type="radio" id="tenMinute" name="timeType" value="tenMinute"  > tenMinute</input>
-    <input type="radio" id="halfHour" name="timeType" value="halfHour" > halfHour</input>
-    <input type="radio" id="hour" name="timeType" value="hour" > hour</input>
-</div>
-<div>
-    <input type="checkbox" id="btc_checkbox"  > btc</input>
-    <input type="checkbox" id="btcamout_checkbox" > btcamout</input>
-    <input type="checkbox" id="usdt_checkbox" > usdt</input>
-    <input type="checkbox" id="usdtdepth_checkbox" > usdtdepth</input>
-</div>
-
-
-
-
-
-
-<div id="chart_0" style="width: 1000px; height: 250px"></div>
-<div id="chart_1" style="width: 1000px; height: 250px "></div>
-<div id="chart_2" style="width: 1000px; height: 250px "></div>
-<div id="chart_3" style="width: 1000px; height: 250px "></div>
+        }
+    </script>
+</head>
+<body>
+<div id="chart_div" style="width: 900px; height: 500px;"></div>
 </body>
 </html>
