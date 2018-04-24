@@ -28,11 +28,35 @@
     updateTime["halfHour"] = 60 * 30;
     updateTime["hour"] = 60 * 60;
 
+    let startTime = 0;
+    let endTime = 0;
+    let chartData = null;
+    let chartOldIndex = {};
+    let chartDataList = {};
+    let chartTempList = {};
+        function getChartDataName(coinList){
+        let dataName = "";
+        for(let i = 0; i < coinList.length; i++){
+            dataName += coinList[i];
+        }
+        return dataName
+    }
+    function timeUpdate(){
+        if(chartData != null){
+            chartOldIndex = chartData.length;
+            startTime = chartData[chartData.length-1]._id;
+            createCharts();
+        }
+    }
+    function update() {
+        chartData = null;
+        startTime =parseInt((new Date(document.getElementById("DateStart").value)).valueOf()) ;
+        createCharts();
+    }
 
+    function createCharts(){
 
-    function update(){
-        let startTime =parseInt((new Date(document.getElementById("DateStart").value)).valueOf()) ;
-        let endTime = parseInt((new Date(document.getElementById("DateEnd").value)).valueOf());
+        endTime = parseInt((new Date(document.getElementById("DateEnd").value)).valueOf());
         let btc_enable = document.getElementById("btc_checkbox").checked?1:0;
         let btcamout_enable = document.getElementById("btcamout_checkbox").checked?1:0;
         let usdt_enable = document.getElementById("usdt_checkbox").checked?1:0;
@@ -41,17 +65,26 @@
         let charts=["chart_0","chart_1","chart_2","chart_3"];
         let chartIndex = 0;
 
+
+
         for(let i = 0; i < charts.length; i++){
             document.getElementById(charts[i]).hidden = true;
         }
 
-        let _get = `/d_a?timeType=${timeType}&startTime=${startTime}&endTime=${endTime}&btc_enable=${btc_enable}&btcamout_enable=${btcamout_enable}&usdt_enable=${usdt_enable}&usdtdepth_enable=${usdtdepth_enable}`;
+        let _get = `/d_${timeType}?startTime=${startTime}&endTime=${endTime}&btc_enable=${btc_enable}&btcamout_enable=${btcamout_enable}&usdt_enable=${usdt_enable}&usdtdepth_enable=${usdtdepth_enable}`;
         console.log(_get);
         $.post(_get,function(cd,status){
-            console.log(cd);
 
-            let json =JSON.parse(cd)
-            let chartData = json.data;
+//            console.log(cd);
+            let append = false;
+            if(chartData != null){
+
+                chartData =chartData.concat (JSON.parse(cd));
+                append = true;
+            }else{
+                chartData = JSON.parse(cd) ;
+            }
+//            console.log(chartData);
 
             google.charts.load('current', {'packages':['line', 'corechart']});
             if(btc_enable){
@@ -83,32 +116,29 @@
                 drawChart(["bids","asks"],[0],charts[chartIndex],1000, 250 );
                 chartIndex++;
             }
+
             function drawChart(coinList,targetAxisIndex, elementId,chartWidth, chartHight) {
-
-                let chartDiv = document.getElementById(elementId);
-                chartDiv.hidden = false;
-                let data = new google.visualization.DataTable();
-                data.addColumn('datetime', 'Time');
-
-                let temp = {};
+                let dataName = "";
                 for(let i = 0; i < coinList.length; i++){
-                    data.addColumn('number', coinList[i]);
-//                        temp[coinList[i]] = 0;
-//
-//                        for(let j = 0; j < chartData.length; j++){
-//
-//                            if(chartData[j][coinList[i]] !=null){
-//
-//                                temp[coinList[i]]=chartData[j][coinList[i]];
-//                                break;
-//                            }
-//                        }
+                    dataName += coinList[i];
+                }
+//                console.log("0000");
+//                console.log(chartDataList[dataName]);
+                if(chartDataList[dataName]==null){
+                    chartDataList[dataName] = new Array();
+                }
+                if(chartTempList[dataName]==null){
+                    chartTempList[dataName] = {};
+                }
+                if(chartOldIndex[dataName]==null){
+                    chartOldIndex[dataName] = 0;
                 }
 
-                let mydata=new Array();
-
-
-                for(let i = 0; i < chartData.length; i++){
+                let temp = chartTempList[dataName];
+                let mydata=chartDataList[dataName];
+//                console.log("aaaa");
+//                console.log(mydata);
+                for(let i = chartOldIndex[dataName]; i < chartData.length; i++){
 
                     mydata[i] = new Array();
 
@@ -131,36 +161,54 @@
                         }
                     }
                 }
+//                console.log("bbbb");
+//                console.log(mydata);
 
-                data.addRows(mydata);
+                if(true){
+                    let chartDiv = document.getElementById(elementId);
+                    chartDiv.hidden = false;
+                    let data = new google.visualization.DataTable();
+                    data.addColumn('datetime', 'Time');
 
-                let title = " ";
-                let series = {};
-                let vaxes = {};
 
-                for(let i = 0; i < coinList.length; i ++){
-                    title = title + " " + coinList[i];
-                    series[i] = {targetAxisIndex: targetAxisIndex[i]};
-                    vaxes[i] = {title: coinList[i]};
+                    for(let i = 0; i < coinList.length; i++){
+                        data.addColumn('number', coinList[i]);
+                    }
+
+                    data.addRows(mydata);
+
+                    let title = " ";
+                    let series = {};
+                    let vaxes = {};
+
+                    for(let i = 0; i < coinList.length; i ++){
+                        title = title + " " + coinList[i];
+                        series[i] = {targetAxisIndex: targetAxisIndex[i]};
+                        vaxes[i] = {title: coinList[i]};
+                    }
+
+                    let classicOptions = {
+                        title: timeType + title,
+                        width: chartWidth,
+                        height: chartHight,
+                        series:series,
+                        vAxes: vaxes,
+                    };
+
+                    function drawClassicChart() {
+                        let classicChart = new google.visualization.LineChart(chartDiv);
+                        classicChart.draw(data, classicOptions);
+                    }
+
+                    drawClassicChart();
                 }
 
-                let classicOptions = {
-                    title: timeType + title,
-                    width: chartWidth,
-                    height: chartHight,
-                    series:series,
-                    vAxes: vaxes,
-                };
 
-                function drawClassicChart() {
-                    let classicChart = new google.visualization.LineChart(chartDiv);
-                    classicChart.draw(data, classicOptions);
-                }
 
-                drawClassicChart();
+
 
             }
-//                setTimeout(update, 1000 * updateTime[timeType]);
+//                setTimeout(update, 1000 );
         });
     }
     function js_yyyy_mm_dd_hh_mm_ss (date) {
@@ -179,8 +227,10 @@
         nextdate = new Date(nowdate.valueOf() + 1000*60*60*24) ;
         document.getElementById("DateEnd").value = js_yyyy_mm_dd_hh_mm_ss(nextdate);
 //        predate =new Date(1523497756956 - 10) ;
-        predate =new Date(nowdate.valueOf() - 1000*60*60*6) ;
+        predate =new Date(nowdate.valueOf() - 1000*60) ;
         document.getElementById("DateStart").value = js_yyyy_mm_dd_hh_mm_ss(predate);
+
+        document.getElementById('update').onclick = function () {timeUpdate();};
 
         document.getElementById('second').onclick = function () {timeType = "second"; update();};
         document.getElementById('halfMinute').onclick = function () {timeType = "halfMinute"; update();};
@@ -192,8 +242,8 @@
 
         document.getElementById("btc_checkbox").checked = true;
         document.getElementById("btcamout_checkbox").checked = false;
-        document.getElementById("usdt_checkbox").checked = true;
-        document.getElementById("usdtdepth_checkbox").checked = true;
+        document.getElementById("usdt_checkbox").checked = false;
+        document.getElementById("usdtdepth_checkbox").checked = false;
         update();
     });
 
@@ -202,6 +252,7 @@
 <input type="datetime-local" value="2018-04-24T13:59:59" id = "DateStart"/>
 <input type="datetime-local" value="2015-09-24T13:59:59" id = "DateEnd"/>
 
+<button id="update">update</button>
 <button id="second">second</button>
 <button id="halfMinute">halfMinute</button>
 <button id="minute">minute</button>

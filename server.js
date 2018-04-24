@@ -38,7 +38,7 @@ app.post('/process_post', urlencodedParser, function (req, res) {
 })
 app.post('/d_*', urlencodedParser, function (req, res) {
 
-    handle(req.params['0'], req, res );
+    find(req.params['0'], req, res );
 })
 const moment = require('moment');
 
@@ -46,15 +46,11 @@ var MongoClient = require('mongodb').MongoClient;
 var assert = require('assert');
 
 let MONGODB = process.env.MONGODB;
-<<<<<<< HEAD
-=======
-let dbName = "br112";
->>>>>>> 7581891f5cf330e9ddbf1ae7ee7d37146a41a7ab
 var dbase;
 MongoClient.connect(MONGODB, function(err, db) {
     assert.equal(null, err);
     console.log('Connected correctly to server.');
-    dbase = db.db(dbName);
+    dbase = db.db("huobi");
     // dbase.createCollection('site', function (err, res) {
     //     assert.equal(null, err);
     //     console.log("创建集合!");
@@ -88,45 +84,76 @@ function DeleteId(arr) {
 
     }
 }
-function handle(pathName, req, response) {
+function find(pathName, req, response){
 
-    console.log(pathName);
-
-    if(pathName == "a"){
-        var query = {};
-        let timeType = req.query.timeType;
-        let startTime =parseInt(req.query.startTime);
-        let endTime =parseInt( req.query.endTime);
-        let symbol = req.query.symbol;
-        find(symbol, startTime, endTime, response);
-    }else if(pathName == "b"){
-
-        getRobotInfo(response);
-    }
+    var query = {};
+    let timeType = req.query.timeType;
+    let startTime =parseInt(req.query.startTime);
+    let endTime =parseInt( req.query.endTime);
+    let btc_enable = req.query.btc_enable;
+    let btcamout_enable = req.query.btcamout_enable;
+    let usdt_enable = req.query.usdt_enable;
+    let usdtdepth_enable = req.query.usdtdepth_enable;
 
 
-
-}
-function getRobotInfo(response){
-    dbase.collection("info"). find({_id:0}).toArray(function(err, result) { // 返回集合中所有数据
-        if (err) throw err;
-
-        response.end(JSON.stringify(result[0]));
-    });
-}
-function find(collectionName, startTime,endTime,  response){
+    console.log(btc_enable);
+    console.log(btcamout_enable);
+    console.log(usdt_enable);
     let project = {};
     project["_id"] = 1;
-    project["ask"] = 1;
-    project["bid"] = 1;
-    project["usdtBtcPrice"] = 1;
-    project["sellDonePrice"] = 1;
+    if(btc_enable == 1){
+        console.log("btc_enable");
+        project["btc"] = 1;
+        // project["aveUsdt"] = 1;
+    }
+    if(btcamout_enable == 1){
+        console.log("btcamout_enable");
 
+        project["btcminamount"] = 1;
+        project["btcminvol"] = 1;
+        project["btcmincount"] = 1;
+    }
+    if(usdt_enable == 1){
+        console.log("usdt_enable");
 
-    dbase.collection(collectionName). find({_id:{$gt:startTime,$lt:endTime}}).project(project).sort({_id:1}).toArray(function(err, result) { // 返回集合中所有数据
+        project["usd"] = 1;
+        project["usdt"] = 1;
+        project["usdtbuy"] = 1;
+    }
+    if(usdtdepth_enable == 1){
+        console.log("usdt_depth");
+
+        project["asks"] = 1;
+
+        project["bids"] = 1;
+
+    }
+
+    dbase.collection("g"). find({_id:{$gt:startTime,$lt:endTime}, [timeType]:1 }).project(project).sort({_id:1}).toArray(function(err, result) { // 返回集合中所有数据
         if (err) throw err;
 
-         response.end(JSON.stringify(result));
+        DeleteId(result);
+
+        // console.log(result);
+        let json = {};
+        json.timeType = timeType;
+        if(result.length==0){
+            json.startTime = startTime;
+            json.endTime = startTime;
+            json.data = result;
+        }else{
+
+            json.startTime = result[0]._id;
+            json.endTime = result[result.length-1]._id;
+            // response.writeHead(200, {"Content-Type": "text/plain"});
+
+            json.data = result;
+
+        }
+
+        // response.write("aaa");
+
+         response.end(JSON.stringify(json));
     });
 }
 var server = app.listen(8081, function () {
