@@ -45,9 +45,9 @@ const moment = require('moment');
 var MongoClient = require('mongodb').MongoClient;
 var assert = require('assert');
 
-var url = 'mongodb://root:TinyUlt920805@47.52.225.13:27017/huobi?authSource=admin';
+let MONGODB = process.env.MONGODB;
 var dbase;
-MongoClient.connect(url, function(err, db) {
+MongoClient.connect(MONGODB, function(err, db) {
     assert.equal(null, err);
     console.log('Connected correctly to server.');
     dbase = db.db("huobi");
@@ -156,7 +156,7 @@ function find(pathName, req, response){
          response.end(JSON.stringify(json));
     });
 }
-var server = app.listen(80, function () {
+var server = app.listen(8081, function () {
 
     var host = server.address().address;
     var port = server.address().port;
